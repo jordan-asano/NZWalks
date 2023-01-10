@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using NZWalks.API.Models.DTO;
 using NZWalks.API.Repositories;
 
 namespace NZWalks.API.Controllers
@@ -47,6 +48,11 @@ namespace NZWalks.API.Controllers
         [HttpPost]
         public async Task<IActionResult> AddWalkDifficulty(Models.DTO.AddWalkDifficultyRequest addWalkDifficultyRequest)
         {
+            if(!ValidateAddWalkDifficulty(addWalkDifficultyRequest))
+            {
+                return BadRequest(ModelState);
+            }
+
             var walkDifficultyDomain = new Models.Domain.WalkDifficulty
             {
                 Code = addWalkDifficultyRequest.Code,
@@ -64,6 +70,11 @@ namespace NZWalks.API.Controllers
         public async Task<IActionResult> UpdateWalkDifficulty(Guid id,
             Models.DTO.UpdateWalkDifficultyRequest updateWalkDifficultyRequest)
         {
+            if (!(await ValidateUpdateWalkDifficulty(id, updateWalkDifficultyRequest)))
+            {
+                return BadRequest(ModelState);
+            }
+
             var walkDifficultyDomain = new Models.Domain.WalkDifficulty
             { Code = updateWalkDifficultyRequest.Code, };
 
@@ -94,5 +105,53 @@ namespace NZWalks.API.Controllers
 
             return Ok(walkDifficultyDTO);
         }
+
+        #region Private methods
+
+        private bool ValidateAddWalkDifficulty(Models.DTO.AddWalkDifficultyRequest addWalkDifficultyRequest)
+        {
+            if (addWalkDifficultyRequest == null)
+            {
+                ModelState.AddModelError(nameof(addWalkDifficultyRequest), $"Add walk difficulty request is required.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(addWalkDifficultyRequest.Code))
+            {
+                ModelState.AddModelError(nameof(addWalkDifficultyRequest.Code), "Code required");
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task<bool> ValidateUpdateWalkDifficulty(Guid id, Models.DTO.UpdateWalkDifficultyRequest updateWalkDifficultyRequest)
+        {
+            if (updateWalkDifficultyRequest == null)
+            {
+                ModelState.AddModelError(nameof(updateWalkDifficultyRequest), $"Add walk difficulty request is required.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(updateWalkDifficultyRequest.Code))
+            {
+                ModelState.AddModelError(nameof(updateWalkDifficultyRequest.Code), "Code required");
+            }
+
+            var existingWalkDifficulty = await walkDifficultyRepository.GetAsync(id);
+
+            if(existingWalkDifficulty == null)
+            {
+                ModelState.AddModelError(nameof(id), "Walk difficulty id not valid");
+            }
+
+            if(ModelState.ErrorCount > 0)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        #endregion
     }
 }
